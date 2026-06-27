@@ -11,18 +11,33 @@ import io
 
 # ---------- Инициализация Firebase ----------
 if not firebase_admin._apps:
-    key_content = os.getenv("FIREBASE_KEY")
-
-    if key_content:
-        cred_dict = json.loads(key_content)
-        cred = credentials.Certificate(cred_dict)
-    elif os.path.exists("serviceAccountKey.json"):
-        cred = credentials.Certificate("serviceAccountKey.json")
-    else:
-        st.error("❌ Ошибка: Ключ Firebase не найден!")
+    try:
+        if "FIREBASE_KEY" in st.secrets:
+            key_content = st.secrets["FIREBASE_KEY"]
+            cred_dict = json.loads(key_content)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            print("✅ Firebase инициализирован через st.secrets")
+        
+        elif os.getenv("FIREBASE_KEY"):
+            key_content = os.getenv("FIREBASE_KEY")
+            cred_dict = json.loads(key_content)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+            print("✅ Firebase инициализирован через os.getenv")
+        
+        elif os.path.exists("serviceAccountKey.json"):
+            cred = credentials.Certificate("serviceAccountKey.json")
+            firebase_admin.initialize_app(cred)
+            print("✅ Firebase инициализирован через файл")
+        
+        else:
+            st.error("❌ Ошибка: Ключ Firebase не найден!")
+            st.stop()
+            
+    except Exception as e:
+        st.error(f"❌ Ошибка инициализации Firebase: {e}")
         st.stop()
-
-    firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
